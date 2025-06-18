@@ -80,6 +80,10 @@ export default function PlaceholderImage({
       </div>
     );
   }
+
+  // Construct the proxied URL to securely fetch and cache external images
+  const proxiedSrc = `/api/image-proxy?url=${encodeURIComponent(src)}`;
+
   return (
     <div className="relative w-full h-full">
       {/* Loading spinner overlay */}
@@ -98,7 +102,7 @@ export default function PlaceholderImage({
       )}
 
       <Image
-        src={src}
+        src={proxiedSrc}
         alt={alt}
         width={width}
         height={height}

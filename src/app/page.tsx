@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import ProductCard from "./components/ProductCard";
 import ChatBubble from "./components/ChatBubble";
@@ -77,21 +77,63 @@ const useCases = [
 ];
 
 export default function TechChickPage() {
-  const { messages, input, handleInputChange, handleSubmit, append } =
-    useChat();
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    append,
+    setMessages,
+    isLoading: isChatLoading,
+  } = useChat();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedUseCase, setSelectedUseCase] = useState<string>("");
   const [showChat, setShowChat] = useState(false);
-  const [chatExpanded, setChatExpanded] = useState(false);
   const [scrollY, setScrollY] = useState(0);
-  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [currentProductCategory, setCurrentProductCategory] =
     useState<string>("");
   const [isLoadingRecommendations, setIsLoadingRecommendations] =
     useState(false);
+  const [dynamicPrompts, setDynamicPrompts] = useState<string[]>([]);
+  const [uiState, setUiState] = useState<{
+    products: Product[];
+    explanations: { title: string; text: string }[];
+    dynamicComponent?: string;
+  }>({ products: [], explanations: [] });
+  const [chatMessage, setChatMessage] = useState<string>("");
 
   const currentYear = new Date().getFullYear();
+
+  // Function to fetch dynamic prompts, wrapped in useCallback for performance
+  const fetchAndSetDynamicPrompts = useCallback(async () => {
+    // Immediately clear existing prompts to show loading state
+    setDynamicPrompts([]);
+    try {
+      const response = await fetch("/api/generate-prompts");
+      if (!response.ok) throw new Error("API response not ok");
+      const prompts = await response.json();
+      if (Array.isArray(prompts) && prompts.length > 0) {
+        setDynamicPrompts(prompts);
+      } else {
+        throw new Error("Invalid prompts format");
+      }
+    } catch (error) {
+      console.error("Failed to fetch dynamic prompts, using fallback.", error);
+      // Set fallback prompts on error
+      setDynamicPrompts([
+        "I need a laptop for college under $800",
+        `What's the best gaming laptop in ${currentYear}?`,
+        "Should I buy an iPhone or an Android?",
+        "Help me build a PC for video editing",
+      ]);
+    }
+  }, [currentYear]);
+
+  // Fetch dynamic prompts on initial load
+  useEffect(() => {
+    fetchAndSetDynamicPrompts();
+  }, [fetchAndSetDynamicPrompts]);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -100,35 +142,67 @@ export default function TechChickPage() {
   }, []); // Parse AI response for product data from OpenAI
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.role === "assistant") {
+
+    // Only parse when streaming is complete and we have an assistant message
+    if (lastMessage && lastMessage.role === "assistant" && !isChatLoading) {
       const content = lastMessage.parts
         .map((part) => (part.type === "text" ? part.text : ""))
         .join("");
 
-      const startMarker = "__PRODUCT_DATA_START__";
-      const endMarker = "__PRODUCT_DATA_END__";
+      // Skip parsing if content is empty or too short
+      if (!content || content.length < 10) {
+        setIsLoadingRecommendations(false);
+        return;
+      }
 
-      const startIndex = content.indexOf(startMarker);
-      const endIndex = content.indexOf(endMarker);
-
-      if (startIndex !== -1 && endIndex !== -1) {
-        const productDataString = content
-          .substring(startIndex + startMarker.length, endIndex)
-          .trim();
-        try {
-          const products = JSON.parse(productDataString);
-          if (Array.isArray(products) && products.length > 0) {
-            setRecommendedProducts(products);
-            setCurrentStep(3); // Move to recommendations step
-            setIsLoadingRecommendations(false);
-          }
-        } catch (error) {
-          console.error("Error parsing product data:", error);
+      try {
+        // More robust JSON extraction - find complete JSON objects
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          // No JSON found, but streaming is complete - this is an error state
+          console.error("No JSON found in completed response:", content);
           setIsLoadingRecommendations(false);
+          return;
         }
+
+        const jsonString = jsonMatch[0];
+        let parsed = JSON.parse(jsonString);
+
+        if (typeof parsed === "string") {
+          parsed = JSON.parse(parsed);
+        }
+        if (parsed && typeof parsed === "object") {
+          // Successfully parsed - update UI
+          setChatMessage(parsed.chatMessage || "");
+          setUiState({
+            products: Array.isArray(parsed.ui?.products)
+              ? parsed.ui.products
+              : [],
+            explanations: Array.isArray(parsed.ui?.explanations)
+              ? parsed.ui.explanations
+              : [],
+            dynamicComponent: parsed.ui?.dynamicComponent || undefined,
+          });
+          setCurrentStep(3);
+          setIsLoadingRecommendations(false);
+          return;
+        }
+      } catch {
+        // JSON parsing failed on completed response
+        console.error(
+          "JSON parse error for completed response:",
+          content.substring(0, 200) + "..."
+        );
+        setIsLoadingRecommendations(false);
+        return;
       }
     }
-  }, [messages]);
+
+    // If we're still streaming, keep the loading state
+    if (isChatLoading && lastMessage && lastMessage.role === "user") {
+      setIsLoadingRecommendations(true);
+    }
+  }, [messages, isChatLoading]);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId);
@@ -160,9 +234,14 @@ export default function TechChickPage() {
     setCurrentStep(0);
     setSelectedCategory("");
     setSelectedUseCase("");
-    setRecommendedProducts([]);
     setShowChat(false);
     setIsLoadingRecommendations(false);
+    // Clear the chat history
+    setMessages([]); // Reset UI state
+    setUiState({ products: [], explanations: [] });
+    setChatMessage("");
+    // Fetch new dynamic prompts
+    fetchAndSetDynamicPrompts();
   };
 
   const handleScrollClick = () => {
@@ -212,18 +291,28 @@ export default function TechChickPage() {
           </button>
         )}
       </div>
-      {/* New Chat Bubble Component */}
+      {/* New Chat Bubble Component */}{" "}
       {showChat && (
         <ChatBubble
-          isExpanded={chatExpanded}
-          messages={messages}
+          messages={messages.map((msg) => ({
+            id: msg.id,
+            role: msg.role,
+            parts: msg.parts
+              .filter((part) => part.type === "text")
+              .map((part) => ({
+                type: part.type,
+                text: "text" in part ? part.text : "",
+              })),
+          }))}
           input={input}
           onInputChange={handleInputChange}
           onSubmit={handleSubmit}
-          onToggleExpanded={() => setChatExpanded(!chatExpanded)}
           onClose={() => setShowChat(false)}
           chickSize={chickSize}
           isScrolled={isScrolled}
+          chatMessage={chatMessage}
+          onStartNew={handleStartOver}
+          isLoading={isLoadingRecommendations || isChatLoading}
         />
       )}
       {/* Hero Section */}
@@ -340,7 +429,13 @@ export default function TechChickPage() {
               <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 glow animate-fade-in delay-300">
                 <div className="animate-pulse">
                   <div className="text-6xl mb-4 animate-bounce animate-float">
-                    🐔
+                    <Image
+                      src="/barnabus_typing.png"
+                      alt="TechChick Avatar"
+                      layout="fill"
+                      objectFit="cover"
+                      className="rounded-full filter brightness-90"
+                    />
                   </div>
                   <p className="text-lg mb-4 animate-fade-in delay-450">
                     Barnabus is analyzing your needs and scraping the web for
@@ -409,33 +504,69 @@ export default function TechChickPage() {
                 💬 View Chat
               </button>
             </div>
-          )}
-          {/* Step 4: Product Recommendations */}
-          {currentStep === 3 && recommendedProducts.length > 0 && (
+          )}{" "}
+          {/* Step 4: Dynamic Content from AI */}
+          {currentStep === 3 && (
             <div className="text-center">
-              <h2 className="text-4xl font-bold mb-4 text-yellow-400 animate-fade-in">
-                🐔 Barnabus Found Your Perfect Matches!
-              </h2>
-              <p className="text-xl text-gray-300 mb-12 animate-fade-in delay-150">
-                Here are the top recommendations for your {selectedCategory}{" "}
-                needs:
-              </p>
+              {" "}
+              {/* Show products in cards if available */}
+              {uiState.products.length > 0 && (
+                <>
+                  <h2 className="text-4xl font-bold mb-4 text-yellow-400 animate-fade-in">
+                    🐔 Barnabus Found Your Perfect Matches!
+                  </h2>
+                  <p className="text-xl text-gray-300 mb-12 animate-fade-in delay-150">
+                    Here are the top recommendations for your needs:
+                  </p>
 
-              {/* Enhanced Centered Product Grid */}
-              <div className="products-grid mb-12">
-                {recommendedProducts.map((product, index) => (
-                  <div
-                    key={index}
-                    className="animate-card-entrance card-hover"
-                    style={{
-                      animationDelay: `${index * 150}ms`,
-                    }}
-                  >
-                    <ProductCard product={product} />
+                  <div className="products-grid mb-12 transition-all duration-700">
+                    {uiState.products.map((product, index) => (
+                      <div
+                        key={index}
+                        className="animate-card-entrance card-hover"
+                        style={{ animationDelay: `${index * 150}ms` }}
+                      >
+                        <ProductCard product={product} />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-
+                </>
+              )}
+              {/* Show explanations if available */}
+              {uiState.explanations.length > 0 && (
+                <div className="mb-8 mt-8">
+                  <h3 className="text-2xl font-bold mb-6 text-yellow-400">
+                    💡 Why These Recommendations?
+                  </h3>
+                  <div className="grid grid-cols-1 max-w-3xl mx-auto gap-6">
+                    {uiState.explanations.map((explanation, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-xl border border-gray-700 animate-fade-in"
+                        style={{ animationDelay: `${idx * 200}ms` }}
+                      >
+                        <h4 className="text-lg font-bold text-yellow-400 mb-3">
+                          {explanation.title}
+                        </h4>
+                        <p className="text-gray-300 text-sm leading-relaxed">
+                          {explanation.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Show dynamic HTML content if available */}
+              {uiState.dynamicComponent && (
+                <div className="w-full flex justify-center items-center">
+                  <div
+                    className="animate-fade-in animate-slide-up mb-8 mx-auto"
+                    dangerouslySetInnerHTML={{
+                      __html: uiState.dynamicComponent,
+                    }}
+                  />
+                </div>
+              )}
               <div className="flex gap-4 justify-center flex-wrap animate-fade-in delay-300 mt-10">
                 <button
                   onClick={handleStartOver}
@@ -459,35 +590,45 @@ export default function TechChickPage() {
                 Or try these quick examples:
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  "I need a laptop for college under $800",
-                  `What's the best gaming laptop in ${currentYear}?`,
-                  "Should I buy iPhone or Android?",
-                  "Help me build a PC for video editing",
-                ].map((question, index) => (
+                {" "}
+                {(dynamicPrompts.length > 0
+                  ? dynamicPrompts
+                  : [
+                      "Help me choose a laptop for college",
+                      "What's the best phone for photography?",
+                      "I need a gaming PC setup advice",
+                      "Budget tablet recommendations",
+                    ]
+                ).map((question, index) => (
                   <button
                     key={index}
                     onClick={() => {
-                      setShowChat(true);
-                      // Auto-populate the chat with this question
-                      setTimeout(() => {
-                        const inputElement = document.querySelector(
-                          'input[placeholder*="Ask TechChick"]'
-                        ) as HTMLInputElement;
-                        if (inputElement) {
-                          inputElement.value = question;
-                          inputElement.focus();
-                        }
-                      }, 100);
+                      if (question) {
+                        setShowChat(true);
+                        setCurrentStep(3);
+                        append({
+                          role: "user",
+                          content: question,
+                        });
+                      }
                     }}
-                    className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg text-left transition-all hover:scale-102 border border-gray-600 hover:border-yellow-400/50"
+                    className={`bg-gray-700 hover:bg-gray-600 p-4 rounded-lg text-left transition-all hover:scale-102 border border-gray-600 hover:border-yellow-400/50 ${
+                      !question ? "animate-pulse bg-gray-600" : ""
+                    }`}
+                    disabled={!question}
                   >
-                    <div className="text-sm text-gray-300">
-                      &quot;{question}&quot;
-                    </div>
-                    <div className="text-xs text-yellow-400 mt-2">
-                      Click to ask →
-                    </div>
+                    {question ? (
+                      <>
+                        <div className="text-sm text-gray-300">
+                          &quot;{question}&quot;
+                        </div>
+                        <div className="text-xs text-yellow-400 mt-2">
+                          Click to ask →
+                        </div>
+                      </>
+                    ) : (
+                      <div className="h-10"></div> // Placeholder for loading state
+                    )}
                   </button>
                 ))}
               </div>
