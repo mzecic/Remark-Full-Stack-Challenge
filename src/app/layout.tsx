@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Chat",
-  description: "Basic AI chat app",
+  title: "TechChick - Your Futuristic Tech Expert",
+  description:
+    "Meet TechChick, your AI-powered tech expert who helps you find the perfect computer, phone, or any tech device!",
 };
 
 export default function RootLayout({
