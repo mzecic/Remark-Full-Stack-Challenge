@@ -81,8 +81,8 @@ export default function PlaceholderImage({
     );
   }
 
-  // Construct the proxied URL to securely fetch and cache external images
-  const proxiedSrc = `/api/image-proxy?url=${encodeURIComponent(src)}`;
+  // Use direct image URL (no proxy)
+  const proxiedSrc = src;
 
   return (
     <div className="relative w-full h-full">

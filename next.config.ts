@@ -21,7 +21,6 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
-      // Add other common image hosts that might be used for product images
       {
         protocol: "https",
         hostname: "cdn.shopify.com",
@@ -34,7 +33,48 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
-      // Hostnames for scraped product images
+      {
+        protocol: "https",
+        hostname: "store.storeimages.cdn-apple.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.samsung.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "i.dell.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "p1-ofp.static.pub",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "store.google.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.lenovo.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.hp.com",
+        port: "",
+        pathname: "/**",
+      },
       {
         protocol: "https",
         hostname: "**.apple.com",
