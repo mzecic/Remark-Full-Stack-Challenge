@@ -29,9 +29,12 @@ const ChatInputComponent = ({
   isChatLoading: boolean;
   className?: string;
 }) => (
-  <form onSubmit={handleSubmit} className={className}>
+  <form
+    onSubmit={handleSubmit}
+    className={`relative flex items-center ${className || ""}`}
+  >
     <input
-      className="w-full p-4 rounded-lg bg-gray-800/50 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"
+      className="w-full p-4 pr-14 rounded-lg bg-gray-800/50 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"
       value={input}
       onChange={handleInputChange}
       placeholder={
@@ -39,6 +42,24 @@ const ChatInputComponent = ({
       }
       disabled={isChatLoading}
     />
+    <button
+      type="submit"
+      className="absolute right-3 md:hidden bg-yellow-400 hover:bg-yellow-500 text-gray-900 p-2 rounded-full disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+      disabled={!input || isChatLoading}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-5 w-5"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+      >
+        <path
+          fillRule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z"
+          clipRule="evenodd"
+        />
+      </svg>
+    </button>
   </form>
 );
 
@@ -129,6 +150,7 @@ export default function TechChickPage() {
   const [showScrollButton, setShowScrollButton] = useState(true);
   const [isChatPaneVisible, setIsChatPaneVisible] = useState(false);
   const [isPromptsLoading, setIsPromptsLoading] = useState(true);
+  const [showResultsGlow, setShowResultsGlow] = useState(false);
 
   const currentYear = new Date().getFullYear();
 
@@ -203,6 +225,14 @@ export default function TechChickPage() {
         if (typeof parsed === "string") parsed = JSON.parse(parsed);
 
         if (parsed && typeof parsed === "object") {
+          const hasResults =
+            (Array.isArray(parsed.ui?.products) &&
+              parsed.ui.products.length > 0) ||
+            (Array.isArray(parsed.ui?.explanations) &&
+              parsed.ui.explanations.length > 0);
+          if (hasResults) {
+            setShowResultsGlow(true);
+          }
           setUiState({
             products: Array.isArray(parsed.ui?.products)
               ? parsed.ui.products
@@ -222,6 +252,7 @@ export default function TechChickPage() {
       messages[messages.length - 1]?.role === "user"
     ) {
       setUiState({ products: [], explanations: [], responseType: undefined });
+      setShowResultsGlow(false);
     }
   }, [messages, isChatLoading]);
 
@@ -243,6 +274,7 @@ export default function TechChickPage() {
   const handleStartOver = () => {
     setMessages([]);
     setUiState({ products: [], explanations: [], responseType: undefined });
+    setShowResultsGlow(false);
     fetchAndSetDynamicPrompts();
     setCurrentStep(0);
     setSelectedCategory("");
@@ -298,7 +330,8 @@ export default function TechChickPage() {
             className="rounded-full object-cover"
           />
         </div>
-        <span className="mx-3 text-lg font-semibold text-yellow-400">-</span>
+        <span className="ml-3 text-lg font-bold text-yellow-400">Barnabus</span>
+        <span className="mx-2 text-lg font-semibold text-yellow-400">-</span>
         <span className="text-base font-medium text-white whitespace-nowrap">
           Your tech expert
         </span>
@@ -354,25 +387,16 @@ export default function TechChickPage() {
       </div>
 
       {/* Mobile Chat/Welcome Section */}
-      <div className="md:hidden flex flex-col h-[100vh] overflow-hidden">
+      <div
+        className="md:hidden flex flex-col"
+        style={{ height: "calc(100vh - 114px)" }}
+      >
         {/* Welcome part for mobile, only show if no messages */}
         {messages.length === 0 && !isChatLoading ? (
           <div className="flex-1 flex flex-col justify-center items-center px-4 text-center overflow-y-auto">
-            <div className="w-24 h-24 mb-4 relative">
-              <Image
-                src="/barnabus.png"
-                alt="Barnabus Avatar"
-                fill
-                className="rounded-full object-cover"
-              />
-            </div>
-            <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
-              Meet Barnabus
+            <h1 className="text-xl font-bold text-yellow-400 mb-6 mt-4">
+              Hi, I'm Barnabus, your tech expert!
             </h1>
-            <p className="text-base text-gray-300 mb-6">
-              Your AI-powered tech expert who&apos;ll help you find the perfect
-              computer, phone, or gadget for your needs.
-            </p>
             <ChatInputComponent
               className="mb-4 w-full"
               handleSubmit={handleSubmit}
@@ -597,7 +621,7 @@ export default function TechChickPage() {
         )}
 
         {/* Mobile bottom bar */}
-        <div className="p-3 border-t border-gray-700 bg-gradient-to-r from-blue-900 via-purple-900 to-indigo-900 flex justify-center items-center gap-3">
+        <div className="sticky bottom-0 p-3 border-t border-gray-700 bg-gradient-to-r from-blue-900 via-purple-900 to-indigo-900 flex justify-center items-center gap-3">
           <button
             onClick={handleStartOver}
             className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-semibold transition-all text-sm"
@@ -606,9 +630,20 @@ export default function TechChickPage() {
           </button>
           {messages.length > 0 && (
             <button
-              onClick={() => setIsChatPaneVisible(!isChatPaneVisible)}
-              className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg font-semibold transition-all text-sm"
+              onClick={() => {
+                setIsChatPaneVisible(!isChatPaneVisible);
+                setShowResultsGlow(false);
+              }}
+              className={`relative bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
+                showResultsGlow ? "shadow-[0_0_15px_rgba(250,204,21,0.8)]" : ""
+              }`}
             >
+              {showResultsGlow && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                </span>
+              )}
               {isChatPaneVisible ? "View Chat" : "View Results"}
             </button>
           )}
