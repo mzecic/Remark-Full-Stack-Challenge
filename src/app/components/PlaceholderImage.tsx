@@ -80,8 +80,7 @@ export default function PlaceholderImage({
       </div>
     );
   }
-
-  // Use direct image URL (no proxy)
+  
   const proxiedSrc = src;
 
   return (

@@ -1,14 +1,4 @@
-import { useState } from "react";
-
-interface Product {
-  name: string;
-  type: string;
-  price: string;
-  specs: string;
-  pros: string;
-  image: string;
-  sourceUrl: string;
-}
+import { Product } from "../types";
 
 interface ProductCardProps {
   product: Product;
@@ -20,7 +10,7 @@ const getProductIcon = (type: string) => {
   if (t.includes("phone")) return "📱";
   if (t.includes("desktop")) return "🖥️";
   if (t.includes("tablet")) return "📲";
-  return "💻"; // Default to laptop if unknown
+  return "💻";
 };
 
 export default function ProductCard({ product }: ProductCardProps) {
@@ -37,7 +27,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <h3 className="text-lg md:text-xl font-bold text-yellow-400 mb-2 line-clamp-2 group-hover:text-yellow-300 transition-colors">
           {product.name}
         </h3>
-        {/* Price with enhanced styling */}
+        {/* Price */}
         <div className="flex items-baseline gap-2 mb-3 md:mb-4">
           <p className="text-2xl md:text-3xl font-extrabold text-white group-hover:text-yellow-100 transition-colors">
             {product.price}

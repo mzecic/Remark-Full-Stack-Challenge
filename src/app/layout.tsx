@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TechChick - Your Futuristic Tech Expert",
+  title: "Barnabus - Your Futuristic Tech Expert",
   description:
-    "Meet TechChick, your AI-powered tech expert who helps you find the perfect computer, phone, or any tech device!",
+    "Meet Barnabus, your AI-powered tech expert who helps you find the perfect computer, phone, or any tech device!",
 };
 
 export default function RootLayout({

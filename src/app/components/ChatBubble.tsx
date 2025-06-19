@@ -40,6 +40,7 @@ export default function ChatBubble({
       } else {
         content = message.content.replace(/{\s*\"ui\":[\s\S]*/, "").trim();
       }
+      console.error("Error parsing message content:", e);
     }
   }
 

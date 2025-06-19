@@ -21,8 +21,6 @@ Example:
   "Is a tablet powerful enough to replace my laptop for work?"
 ]`,
     });
-
-    // Validate and parse the JSON response
     const prompts = JSON.parse(text);
     if (
       Array.isArray(prompts) &&
@@ -35,7 +33,6 @@ Example:
     }
   } catch (error) {
     console.error("Error generating dynamic prompts:", error);
-    // Provide a fallback list of questions if the AI fails
     const fallbackPrompts = [
       "I need a laptop for college under $800",
       `What's the best gaming laptop in ${new Date().getFullYear()}?`,
