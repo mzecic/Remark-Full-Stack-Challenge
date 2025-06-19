@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Remark Full-Stack Challenge: AI Tech Advisor "Barnabus"
+
+This is a Next.js web application built for the Remark Full-Stack Challenge. It features "Barnabus," an AI-powered chatbot that acts as a witty and knowledgeable tech expert, providing users with product recommendations and advice.
+
+## Live Demo
+
+You can view the deployed application here: **https://remark-full-stack-challenge-b2wj1id44-mzecics-projects.vercel.app/**
+
+## Key Features
+
+- **Conversational AI Chat**: Engage in a natural conversation with Barnabus to get tech advice.
+- **Dynamic UI Generation**: The AI can generate UI components on the fly, such as product cards, comparison tables, and explanation sections, based on the user's query.
+- **Real-time Streaming**: Responses from the AI are streamed in real-time for a more interactive experience.
+- **Responsive Design**: The application is fully responsive and optimized for both desktop and mobile devices, with a mobile-first approach.
+- **Error Handling & Loading States**: Robust loading and error states ensure a smooth user experience.
+
+## Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) 14+ (App Router)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **AI**: [Vercel AI SDK](https://sdk.vercel.ai/) with the [OpenAI](https://openai.com/) API
+- **Deployment**: [Vercel](https://vercel.com/)
 
 ## Getting Started
 
-First, run the development server:
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Prerequisites
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- [Node.js](https://nodejs.org/en/) (v18.x or later)
+- [npm](https://www.npmjs.com/), [yarn](https://yarnpkg.com/), or [pnpm](https://pnpm.io/)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Installation & Setup 
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1.  **Clone the repository:**
 
-## Learn More
+    ```bash
+    git clone https://github.com/mzecic/Remark-Full-Stack-Challenge
+    cd Remark-Full-Stack-Challenge
+    ```
 
-To learn more about Next.js, take a look at the following resources:
+2.  **Install dependencies:**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+    ```bash
+    npm install
+    # or
+    yarn install
+    # or
+    pnpm install
+    ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3.  **Set up environment variables:**
+    Create a new file named `.env.local` in the root of your project and add your OpenAI API key:
 
-## Deploy on Vercel
+    ```
+    OPENAI_API_KEY=your_openai_api_key_here
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    You can get an API key from the [OpenAI Platform](https://platform.openai.com/api-keys).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4.  **Run the development server:**
+
+    ```bash
+    npm run dev
+    ```
+
+5.  **Open the application:**
+    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
