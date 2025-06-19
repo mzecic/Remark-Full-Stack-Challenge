@@ -395,7 +395,7 @@ export default function TechChickPage() {
         {messages.length === 0 && !isChatLoading ? (
           <div className="flex-1 flex flex-col justify-center items-center px-4 text-center overflow-y-auto">
             <h1 className="text-xl font-bold text-yellow-400 mb-6 mt-4">
-              Hi, I'm Barnabus, your tech expert!
+              Hi, I&apos;m Barnabus, your tech expert!
             </h1>
             <ChatInputComponent
               className="mb-4 w-full"
