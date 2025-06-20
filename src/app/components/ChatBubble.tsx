@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import { Message } from "@ai-sdk/react";
+import { useState, useEffect, useMemo } from "react";
 
 interface ChatBubbleProps {
   message: Message;
@@ -13,43 +16,35 @@ function parseAssistantMessage(
   isLast: boolean,
   isLoading: boolean
 ): { visibleContent: string; showThinking: boolean } {
-  // Goal: Extract `chatMessage` without parsing the whole object, which can be incomplete.
+  // Goal: Show the chat message only when the entire JSON object is received.
 
-  // Case 1: Content is not JSON-like, just plain text.
+  // If the content doesn't look like JSON, it's either a plain text response
+  // or the final, cleaned-up message from the onFinish handler. Display it.
   if (!content.trim().startsWith("{")) {
     return { visibleContent: content, showThinking: false };
   }
 
-  // Case 2: Content is JSON-like. Try to extract chatMessage.
+  // If it looks like JSON, try to parse it to see if it's complete.
   try {
-    const chatMessageMatch = content.match(
-      /"chatMessage"\s*:\s*"((?:[^"\\]|\\.)*)"/
-    );
-    if (chatMessageMatch && chatMessageMatch[1]) {
-      // We have a match. The content of chatMessage can have escaped chars.
-      // Using JSON.parse on a quoted string is a safe way to unescape.
-      const visibleContent = JSON.parse(`"${chatMessageMatch[1]}"`);
-      return { visibleContent, showThinking: false };
+    // If JSON.parse succeeds, the full object has been streamed.
+    const parsed = JSON.parse(content);
+    const chatMessage = parsed.chatMessage || "";
+    // Now we have the final message, so we can display it.
+    return { visibleContent: chatMessage, showThinking: false };
+  } catch {
+    // JSON.parse failed, which means the JSON is still streaming and incomplete.
+    // If this is the last message and we're still loading, show "Thinking...".
+    if (isLast && isLoading) {
+      // Avoid showing "Thinking..." if we are clearly just streaming the UI part.
+      const isJustUiStreaming = content.trim().startsWith('{"ui"');
+      if (!isJustUiStreaming) {
+        return { visibleContent: "", showThinking: true };
+      }
     }
-  } catch (e) {
-    // This would only happen if the matched string inside chatMessage is malformed, which is very unlikely.
-    // We can just ignore and fall through.
-    console.error("Could not unescape chat message content", e);
+    // Otherwise, it's an incomplete/malformed JSON for a message that is no longer loading.
+    // This can happen in edge cases. Best to show nothing.
+    return { visibleContent: "", showThinking: false };
   }
-
-  // Case 3: JSON-like, but no chatMessage found yet.
-  // If we are streaming, it's normal. Show "Thinking...".
-  if (isLast && isLoading) {
-    // Avoid showing "Thinking..." if we are clearly just streaming the UI part.
-    const isJustUiStreaming = content.trim().startsWith('{"ui"');
-    if (!isJustUiStreaming) {
-      return { visibleContent: "", showThinking: true };
-    }
-  }
-
-  // Case 4: Fallback. It's a JSON-like string but we can't get a message from it.
-  // (e.g., only UI data, or malformed). Don't show anything in the bubble.
-  return { visibleContent: "", showThinking: false };
 }
 
 export default function ChatBubble({
@@ -57,27 +52,58 @@ export default function ChatBubble({
   isLast,
   isLoading,
 }: ChatBubbleProps) {
-  // More robust check to ensure message and its properties are valid.
+  const [loadingMessage, setLoadingMessage] = useState("Thinking...");
+
+  const { content, showThinking, isUser, bubbleClasses } = useMemo(() => {
+    if (
+      !message ||
+      typeof message.role !== "string" ||
+      typeof message.content !== "string"
+    ) {
+      return {
+        content: "",
+        showThinking: false,
+        isUser: false,
+        bubbleClasses: "",
+      };
+    }
+
+    const isUser = message.role === "user";
+    const bubbleClasses = isUser
+      ? "bg-purple-600 text-white rounded-br-none"
+      : "bg-gray-700 text-white rounded-bl-none";
+
+    let content = message.content;
+    let showThinking = false;
+
+    if (message.role === "assistant") {
+      const result = parseAssistantMessage(content, isLast, isLoading);
+      content = result.visibleContent;
+      showThinking = result.showThinking;
+    }
+
+    return { content, showThinking, isUser, bubbleClasses };
+  }, [message, isLast, isLoading]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+    if (showThinking) {
+      setLoadingMessage("Thinking...");
+      timer = setTimeout(() => {
+        setLoadingMessage("Almost there...");
+      }, 5000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showThinking]);
+
   if (
     !message ||
     typeof message.role !== "string" ||
     typeof message.content !== "string"
   ) {
     return null;
-  }
-
-  const isUser = message.role === "user";
-  const bubbleClasses = isUser
-    ? "bg-purple-600 text-white rounded-br-none"
-    : "bg-gray-700 text-white rounded-bl-none";
-
-  let content = message.content;
-  let showThinking = false;
-
-  if (message.role === "assistant") {
-    const result = parseAssistantMessage(content, isLast, isLoading);
-    content = result.visibleContent;
-    showThinking = result.showThinking;
   }
 
   // Don't render empty bubbles unless it's the assistant thinking.
@@ -104,7 +130,7 @@ export default function ChatBubble({
         {showThinking ? (
           <div className="flex items-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-            <span className="text-sm">Thinking...</span>
+            <span className="text-sm">{loadingMessage}</span>
           </div>
         ) : (
           <p className="whitespace-pre-wrap text-sm">{content}</p>

@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "fakestoreapi.com",
+        port: "",
+        pathname: "/img/**",
+      },
+      {
+        protocol: "https",
         hostname: "cdn.shopify.com",
         port: "",
         pathname: "/**",
@@ -106,6 +112,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "**.dell.com",
+      },
+      {
+        protocol: "https",
+        hostname: "pixabay.com",
+        port: "",
+        pathname: "/**",
       },
     ],
   },
