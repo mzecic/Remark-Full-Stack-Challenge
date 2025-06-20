@@ -28,19 +28,6 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       setIsLoading(true);
 
-      // Ensure you have a .env.local file with your Pexels API key
-      // NEXT_PUBLIC_PEXELS_API_KEY=your_api_key
-      const PEXELS_API_KEY = process.env.NEXT_PUBLIC_PEXELS_API_KEY;
-
-      if (!PEXELS_API_KEY) {
-        console.error(
-          "Pexels API key is missing. Add PEXELS_API_KEY to .env.local"
-        );
-        setImageUrl(null);
-        setIsLoading(false);
-        return;
-      }
-
       // Create a sequence of search terms, from most specific to most general
       const brand = product.name.split(" ")[0];
       const searchTerms = [
@@ -55,28 +42,21 @@ export default function ProductCard({ product }: ProductCardProps) {
       for (const term of searchTerms) {
         if (!term || term.trim() === product.type) continue; // Avoid empty or overly generic searches
         try {
-          console.log(`Searching Pexels for: "${term}"`); // DEBUG
+          console.log(`Searching for: "${term}"`); // DEBUG
           const response = await fetch(
-            `https://api.pexels.com/v1/search?query=${encodeURIComponent(
-              term
-            )}&per_page=1`,
-            {
-              headers: {
-                Authorization: PEXELS_API_KEY,
-              },
-            }
+            `/api/get-product-image?query=${encodeURIComponent(term)}`
           );
 
           if (!response.ok) {
             throw new Error(
-              `Pexels API request failed with status ${response.status}`
+              `API route request failed with status ${response.status}`
             );
           }
 
           const data = await response.json();
 
-          if (data.photos && data.photos.length > 0) {
-            foundImageUrl = data.photos[0].src.large; // Using 'large' image size
+          if (data.imageUrl) {
+            foundImageUrl = data.imageUrl;
             console.log(`Found image for "${term}":`, foundImageUrl); // DEBUG
             break; // Exit loop once an image is found
           }

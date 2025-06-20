@@ -10,7 +10,6 @@ interface ChatBubbleProps {
   isLoading: boolean;
 }
 
-// This is a safer way to parse the assistant's message.
 function parseAssistantMessage(
   content: string,
   isLast: boolean,
