@@ -4,7 +4,7 @@ This is a Next.js web application built for the Remark Full-Stack Challenge. It 
 
 ## Live Demo
 
-You can view the deployed application here: **https://remark-full-stack-challenge-b2wj1id44-mzecics-projects.vercel.app/**
+You can view the deployed application here: **https://remark-full-stack-challenge-seven.vercel.app/**
 
 ## Key Features
 
